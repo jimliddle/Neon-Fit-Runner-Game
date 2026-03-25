@@ -1,8 +1,8 @@
-# 🏃‍♂️ CyberJogger Endless Runner HTML Game
+# 🏃‍♂️ CNeon Fit Endless Runner HTML Game
 
 An App I created for nieces and nephews.
 
-Cyberjogger is a high-intensity, 3D synthwave endless runner built entirely in a single HTML file. Dodge neon obstacles, collect energy cores, and survive the accelerating cyber-grid!
+Neon Fit is a high-intensity, 3D synthwave endless runner built entirely in a single HTML file. Dodge neon obstacles, collect energy cores, and survive the accelerating cyber-grid!
 
 As you progress, the game tracks simulated fitness metrics (Calories and Heart Rate) and ramps up the difficulty with dynamic zones and moving targets. Can you handle the Overdrive zone?
 
