@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Fit Runner - 3D Cyber Workout</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            overflow: hidden;
+            background-color: #050510;
+            font-family: 'Orbitron', sans-serif;
+            color: #fff;
+            /* Prevent default touch actions like zooming or swiping to go back */
+            touch-action: none; 
+        }
+
+        #game-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        /* UI Overlays */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(5, 5, 16, 0.85);
+            z-index: 10;
+            transition: opacity 0.5s ease;
+        }
+
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        h1 {
+            font-size: 4rem;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            color: #fff;
+            text-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 40px #0ff;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        p.subtitle {
+            font-size: 1.2rem;
+            color: #f0f;
+            margin-bottom: 20px;
+            text-shadow: 0 0 5px #f0f;
+            text-align: center;
+        }
+
+        .best-score-display {
+            font-size: 1.5rem;
+            color: #0ff;
+            margin-bottom: 40px;
+            text-shadow: 0 0 10px #0ff;
+            text-align: center;
+            background: rgba(0, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 1px solid #0ff;
+        }
+
+        .new-best-alert {
+            color: #ff0;
+            text-shadow: 0 0 15px #ff0;
+            font-size: 2rem;
+            font-weight: 900;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); opacity: 0.8; }
+            to { transform: scale(1.1); opacity: 1; }
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: bold;
+            color: #050510;
+            background: #0ff;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 0 15px #0ff, inset 0 0 10px rgba(255,255,255,0.5);
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px #0ff, inset 0 0 10px rgba(255,255,255,0.8);
+            background: #fff;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        /* HUD */
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none;
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        #hud.visible {
+            opacity: 1;
+        }
+
+        .hud-panel {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #0ff;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            backdrop-filter: blur(5px);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .hud-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hud-label {
+            font-size: 0.8rem;
+            color: #aaa;
+            text-transform: uppercase;
+        }
+
+        .hud-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 5px #fff;
+        }
+
+        .text-cyan { color: #0ff; text-shadow: 0 0 8px #0ff; }
+        .text-magenta { color: #f0f; text-shadow: 0 0 8px #f0f; }
+        .text-yellow { color: #ff0; text-shadow: 0 0 8px #ff0; }
+        .text-green { color: #0f0; text-shadow: 0 0 8px #0f0; }
+
+        .zone-alert {
+            position: absolute;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            font-weight: 900;
+            color: #ff0055;
+            text-shadow: 0 0 20px #ff0055, 0 0 40px #ff0000;
+            text-transform: uppercase;
+            text-align: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            z-index: 20;
+        }
+        
+        .zone-alert.show {
+            opacity: 1;
+            animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        
+        @keyframes pop-in {
+            0% { transform: translate(-50%, -50%) scale(0.5); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .controls-hint {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.8);
+            text-align: center;
+            text-shadow: 0 0 10px rgba(0,255,255,0.5);
+            background: rgba(0,0,0,0.5);
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: 1px solid rgba(0,255,255,0.3);
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            .btn { font-size: 1.2rem; padding: 12px 30px; }
+            #hud { flex-direction: column; gap: 10px; }
+            .hud-panel { width: fit-content; }
+            .controls-hint { font-size: 1rem; bottom: 20px; }
+            .best-score-display { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 3D Canvas Container -->
+    <div id="game-container"></div>
+
+    <!-- HUD -->
+    <div id="hud">
+        <div class="hud-panel">
+            <div class="hud-item">
+                <span class="hud-label">Distance</span>
+                <span class="hud-value text-cyan" id="ui-distance">0 m</span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-label">Calories</span>
+                <span class="hud-value text-yellow" id="ui-calories">0 kcal</span>
+            </div>
+        </div>
+        <div class="hud-panel" style="align-items: flex-end;">
+            <div class="hud-item" style="align-items: flex-end;">
+                <span class="hud-label">Heart Rate</span>
+                <span class="hud-value text-magenta" id="ui-bpm">75 BPM</span>
+            </div>
+            <div class="hud-item" style="align-items: flex-end;">
+                <span class="hud-label">Energy</span>
+                <span class="hud-value text-green" id="ui-energy">100%</span>
+            </div>
+        </div>
+        <div id="zone-alert" class="zone-alert">ZONE 2</div>
+        <div class="controls-hint">👈 DRAG TO DODGE 👉</div>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="main-menu" class="overlay">
+        <h1>Neon Fit<br>Runner</h1>
+        <p class="subtitle">High-Intensity Cyber Workout</p>
+        <div class="best-score-display" id="menu-best-score" style="display: none;">
+            Best Distance: 0m
+        </div>
+        <button class="btn" id="start-btn">Start Workout</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over" class="overlay hidden">
+        <h1 style="color: #f0f; text-shadow: 0 0 10px #f0f, 0 0 20px #f00;">Workout Failed</h1>
+        <div id="new-best-alert" class="new-best-alert hidden">New Personal Best!</div>
+        <p class="subtitle" id="final-stats" style="margin-bottom: 10px;">Distance: 0m | Calories: 0</p>
+        <div class="best-score-display" id="game-over-best-score">
+            Best Distance: 0m
+        </div>
+        <button class="btn" id="restart-btn">Try Again</button>
+    </div>
+
+    <!-- Load Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        // --- GAME VARIABLES ---
+        let scene, camera, renderer;
+        let player, gridHelper;
+        let obstacles = [];
+        let collectibles = [];
+        let particles = [];
+        
+        let isPlaying = false;
+        let speed = 0.5;
+        let baseSpeed = 0.5;
+        let distance = 0;
+        let calories = 0;
+        let energy = 100;
+        let bpm = 75;
+
+        // Power-up System
+        let isImmune = false;
+        let immunityTimer = 0;
+        let shieldMesh;
+
+        // High Score System
+        let bestDistance = 0;
+        let bestCalories = 0;
+        
+        let currentZone = 1;
+        
+        // Level Generation System (Guarantees fair play)
+        let lastSpawnDistance = 0;
+        let spawnInterval = 40; // Z-Distance between obstacle rows
+        const laneXPositions = [-3.5, 0, 3.5]; // Left, Center, Right lanes
+        
+        // Fluid Movement System
+        let playerTargetX = 0;
+        const maxLaneX = 4.5; // Bounds of track
+        let keyDirection = 0;
+        let isTouching = false;
+        let lastTouchX = 0;
+
+        // Constants
+        const COLORS = {
+            player: 0x00ffff,
+            obstacle: 0xff0055,
+            collectible: 0x00ff00,
+            immunity: 0xffaa00, // Gold
+            grid: 0xff00ff,
+            bg: 0x050510
+        };
+
+        // DOM Elements
+        const uiDistance = document.getElementById('ui-distance');
+        const uiCalories = document.getElementById('ui-calories');
+        const uiBpm = document.getElementById('ui-bpm');
+        const uiEnergy = document.getElementById('ui-energy');
+        const mainMenu = document.getElementById('main-menu');
+        const gameOverScreen = document.getElementById('game-over');
+        const hud = document.getElementById('hud');
+        const finalStats = document.getElementById('final-stats');
+        
+        const menuBestScore = document.getElementById('menu-best-score');
+        const gameOverBestScore = document.getElementById('game-over-best-score');
+        const newBestAlert = document.getElementById('new-best-alert');
+        const zoneAlert = document.getElementById('zone-alert');
+
+        // --- AUDIO SYSTEM ---
+        let audioCtx;
+        let bgmNodes = [];
+
+        const AudioController = {
+            init: () => {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+            },
+            playCollect: () => {
+                if (!audioCtx) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1600, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.2);
+            },
+            playPowerup: () => {
+                if (!audioCtx) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+                osc.frequency.linearRampToValueAtTime(1200, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            },
+            playSmash: () => {
+                if (!audioCtx) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.2);
+            },
+            playDeath: () => {
+                if (!audioCtx) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.5);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.5);
+            },
+            startBGM: () => {
+                AudioController.init();
+                AudioController.stopBGM();
+                
+                const osc1 = audioCtx.createOscillator();
+                const osc2 = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const filter = audioCtx.createBiquadFilter();
+                const lfo = audioCtx.createOscillator();
+
+                osc1.type = 'sawtooth';
+                osc1.frequency.value = 65.41; // C2
+                
+                osc2.type = 'square';
+                osc2.frequency.value = 32.70; // C1
+                
+                filter.type = 'lowpass';
+                filter.frequency.value = 300;
+                
+                // Pulse effect
+                lfo.type = 'sine';
+                lfo.frequency.value = 2.5; // Pulsing tempo
+                
+                const lfoGain = audioCtx.createGain();
+                lfoGain.gain.value = 200; 
+                lfo.connect(lfoGain);
+                lfoGain.connect(filter.frequency);
+
+                // Subtle background volume
+                gain.gain.setValueAtTime(0, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.08, audioCtx.currentTime + 2);
+
+                osc1.connect(filter);
+                osc2.connect(filter);
+                filter.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc1.start();
+                osc2.start();
+                lfo.start();
+                bgmNodes = [osc1, osc2, lfo, gain];
+            },
+            stopBGM: () => {
+                if(bgmNodes.length) {
+                    const gain = bgmNodes[3];
+                    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+                    const nodesToStop = [...bgmNodes];
+                    setTimeout(() => {
+                        nodesToStop.forEach(n => { if(n.stop) n.stop(); n.disconnect(); });
+                    }, 600);
+                    bgmNodes = [];
+                }
+            }
+        };
+
+        // --- INITIALIZATION ---
+        function init() {
+            // 1. Scene Setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(COLORS.bg);
+            scene.fog = new THREE.FogExp2(COLORS.bg, 0.015);
+
+            // 2. Camera Setup
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
+            camera.position.set(0, 4, 8);
+            camera.lookAt(0, 0, -20);
+
+            // 3. Renderer Setup
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.getElementById('game-container').appendChild(renderer.domElement);
+
+            // 4. Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 20, 10);
+            scene.add(dirLight);
+
+            const playerLight = new THREE.PointLight(COLORS.player, 2, 20);
+            playerLight.position.set(0, 1, 0);
+            scene.add(playerLight);
+
+            // 5. Create Environment & Player
+            createEnvironment();
+            createPlayer();
+
+            // 6. Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            
+            // Keyboard Listeners
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'ArrowLeft' || e.code === 'KeyA') keyDirection = -1;
+                if (e.code === 'ArrowRight' || e.code === 'KeyD') keyDirection = 1;
+            });
+            document.addEventListener('keyup', (e) => {
+                if ((e.code === 'ArrowLeft' || e.code === 'KeyA') && keyDirection === -1) keyDirection = 0;
+                if ((e.code === 'ArrowRight' || e.code === 'KeyD') && keyDirection === 1) keyDirection = 0;
+            });
+            
+            // Touch Control Listeners
+            document.addEventListener('touchstart', (e) => {
+                isTouching = true;
+                lastTouchX = e.touches[0].clientX;
+            }, { passive: false });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!isTouching || !isPlaying) return;
+                e.preventDefault(); 
+                let currentX = e.touches[0].clientX;
+                let deltaX = currentX - lastTouchX;
+                let sensitivity = 15 / window.innerWidth;
+                playerTargetX += deltaX * sensitivity;
+                playerTargetX = Math.max(-maxLaneX, Math.min(maxLaneX, playerTargetX));
+                lastTouchX = currentX;
+            }, { passive: false });
+
+            document.addEventListener('touchend', () => { isTouching = false; });
+
+            // UI Listeners
+            document.getElementById('start-btn').addEventListener('click', startGame);
+            document.getElementById('restart-btn').addEventListener('click', startGame);
+
+            // 7. Start Loop
+            animate();
+        }
+
+        // --- OBJECT CREATION ---
+        function createEnvironment() {
+            const gridGeom = new THREE.PlaneGeometry(200, 200, 40, 40);
+            const gridMat = new THREE.MeshBasicMaterial({
+                color: COLORS.grid, wireframe: true, transparent: true, opacity: 0.3
+            });
+            gridHelper = new THREE.Mesh(gridGeom, gridMat);
+            gridHelper.rotation.x = -Math.PI / 2;
+            scene.add(gridHelper);
+
+            const bgGeo = new THREE.ConeGeometry(4, 15, 4);
+            const bgMat = new THREE.MeshBasicMaterial({ color: 0x220044, wireframe: true });
+            for(let i=0; i<20; i++) {
+                let mesh = new THREE.Mesh(bgGeo, bgMat);
+                mesh.position.set((Math.random() - 0.5) * 100, 0, -Math.random() * 100 - 50);
+                if (mesh.position.x > -15 && mesh.position.x < 15) {
+                    mesh.position.x += 20 * Math.sign(mesh.position.x || 1);
+                }
+                scene.add(mesh);
+            }
+        }
+
+        function createPlayer() {
+            const geom = new THREE.SphereGeometry(0.7, 16, 16);
+            const mat = new THREE.MeshStandardMaterial({ 
+                color: COLORS.player, emissive: COLORS.player, emissiveIntensity: 0.8, wireframe: true
+            });
+            player = new THREE.Group();
+            
+            const core = new THREE.Mesh(geom, mat);
+            core.position.y = 1;
+            player.add(core);
+
+            const ringGeom = new THREE.TorusGeometry(1, 0.1, 8, 24);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const ring = new THREE.Mesh(ringGeom, ringMat);
+            ring.position.y = 1;
+            ring.rotation.x = Math.PI / 2;
+            player.add(ring);
+
+            // Immunity Shield Mesh
+            const shieldGeom = new THREE.SphereGeometry(1.2, 16, 16);
+            const shieldMat = new THREE.MeshBasicMaterial({
+                color: COLORS.immunity, wireframe: true, transparent: true, opacity: 0.5
+            });
+            shieldMesh = new THREE.Mesh(shieldGeom, shieldMat);
+            shieldMesh.position.y = 1;
+            shieldMesh.visible = false;
+            player.add(shieldMesh);
+
+            scene.add(player);
+        }
+
+        // --- LEVEL GENERATION ---
+        function spawnObstacleAt(xPos, isSlider = false) {
+            const geom = new THREE.BoxGeometry(2, 2, 2);
+            const mat = new THREE.MeshStandardMaterial({
+                color: COLORS.obstacle, emissive: COLORS.obstacle, emissiveIntensity: 0.5, wireframe: false
+            });
+            const mesh = new THREE.Mesh(geom, mat);
+            mesh.position.set(xPos, 1, -150); // Spawn far back
+            
+            // Give it lateral velocity if it's a slider
+            let vx = 0;
+            if (isSlider) {
+                vx = Math.random() > 0.5 ? 0.08 : -0.08;
+            }
+            mesh.userData = { type: 'obstacle', vx: vx };
+            
+            scene.add(mesh);
+            obstacles.push(mesh);
+        }
+
+        function spawnCollectibleAt(xPos) {
+            const geom = new THREE.OctahedronGeometry(0.8);
+            const mat = new THREE.MeshStandardMaterial({
+                color: COLORS.collectible, emissive: COLORS.collectible, emissiveIntensity: 0.8, wireframe: true
+            });
+            const mesh = new THREE.Mesh(geom, mat);
+            mesh.position.set(xPos, 1, -150);
+            mesh.userData = { type: 'energy' };
+            scene.add(mesh);
+            collectibles.push(mesh);
+        }
+
+        function spawnImmunityAt(xPos) {
+            const geom = new THREE.IcosahedronGeometry(0.8);
+            const mat = new THREE.MeshStandardMaterial({
+                color: COLORS.immunity, emissive: COLORS.immunity, emissiveIntensity: 0.8, wireframe: true
+            });
+            const mesh = new THREE.Mesh(geom, mat);
+            mesh.position.set(xPos, 1, -150);
+            mesh.userData = { type: 'immunity' };
+            scene.add(mesh);
+            collectibles.push(mesh);
+        }
+
+        function generateRow() {
+            let availableLanes = [0, 1, 2];
+            let numObstacles = Math.random() < 0.6 ? 1 : 2;
+
+            if (distance < 100) numObstacles = 1;
+
+            for (let i = 0; i < numObstacles; i++) {
+                let idx = Math.floor(Math.random() * availableLanes.length);
+                let lane = availableLanes.splice(idx, 1)[0];
+                let organicOffset = (Math.random() - 0.5) * 0.8; 
+                
+                let isSlider = currentZone >= 2 && Math.random() < 0.4;
+                spawnObstacleAt(laneXPositions[lane] + organicOffset, isSlider);
+            }
+
+            if (Math.random() < 0.5 && availableLanes.length > 0) {
+                let idx = Math.floor(Math.random() * availableLanes.length);
+                let lane = availableLanes.splice(idx, 1)[0];
+                let organicOffset = (Math.random() - 0.5) * 0.8;
+                
+                // 10% chance to spawn an Immunity Core instead of Energy
+                if (Math.random() < 0.1) {
+                    spawnImmunityAt(laneXPositions[lane] + organicOffset);
+                } else {
+                    spawnCollectibleAt(laneXPositions[lane] + organicOffset);
+                }
+            }
+        }
+
+        function createExplosion(position, color) {
+            const particleCount = 15;
+            const pGeom = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+            const pMat = new THREE.MeshBasicMaterial({ color: color });
+
+            for (let i = 0; i < particleCount; i++) {
+                const p = new THREE.Mesh(pGeom, pMat);
+                p.position.copy(position);
+                p.userData = {
+                    vx: (Math.random() - 0.5) * 0.6,
+                    vy: (Math.random() - 0.5) * 0.6 + 0.2,
+                    vz: (Math.random() - 0.5) * 0.6,
+                    life: 1.0
+                };
+                scene.add(p);
+                particles.push(p);
+            }
+        }
+
+        // --- GAME LOGIC ---
+        function startGame() {
+            isPlaying = true;
+            speed = baseSpeed;
+            distance = 0;
+            lastSpawnDistance = 0;
+            calories = 0;
+            energy = 100;
+            bpm = 75;
+            
+            currentZone = 1;
+            gridHelper.material.color.setHex(COLORS.grid); // Reset grid color
+            
+            playerTargetX = 0;
+            keyDirection = 0;
+            player.position.x = 0;
+            player.rotation.z = 0;
+
+            isImmune = false;
+            immunityTimer = 0;
+            if (shieldMesh) shieldMesh.visible = false;
+
+            obstacles.forEach(ob => scene.remove(ob));
+            collectibles.forEach(col => scene.remove(col));
+            obstacles = [];
+            collectibles = [];
+
+            mainMenu.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            hud.classList.add('visible');
+
+            AudioController.startBGM();
+
+            updateUI();
+        }
+
+        function gameOver() {
+            isPlaying = false;
+            createExplosion(player.position, COLORS.obstacle);
+            player.visible = false;
+            setTimeout(() => { player.visible = true; }, 1000);
+            
+            hud.classList.remove('visible');
+            gameOverScreen.classList.remove('hidden');
+            
+            AudioController.playDeath();
+            AudioController.stopBGM();
+            
+            // Handle High Score Logic
+            let isNewBest = false;
+            if (distance > bestDistance) {
+                bestDistance = distance;
+                bestCalories = calories;
+                isNewBest = true;
+            }
+
+            // Update UI for Game Over Screen
+            finalStats.innerHTML = `Run Distance: ${Math.floor(distance)}m <br> Calories Burned: ${Math.floor(calories)} kcal`;
+            gameOverBestScore.innerHTML = `Best Distance: ${Math.floor(bestDistance)}m`;
+            
+            // Show/Hide New Best Alert
+            if (isNewBest && distance > 10) { // Don't show alert for 0m runs
+                newBestAlert.classList.remove('hidden');
+            } else {
+                newBestAlert.classList.add('hidden');
+            }
+
+            // Update UI for Main Menu (for if they somehow return there)
+            menuBestScore.style.display = 'block';
+            menuBestScore.innerHTML = `Best Distance: ${Math.floor(bestDistance)}m`;
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function updateUI() {
+            uiDistance.innerText = `${Math.floor(distance)} m`;
+            uiCalories.innerText = `${Math.floor(calories)} kcal`;
+            uiBpm.innerText = `${Math.floor(bpm)} BPM`;
+            uiEnergy.innerText = `${Math.floor(energy)}%`;
+            
+            if (energy < 30) uiEnergy.style.color = '#ff0000';
+            else uiEnergy.style.color = '#0f0';
+            
+            if (bpm > 150) uiBpm.style.color = '#ff0000';
+            else uiBpm.style.color = '#f0f';
+        }
+
+        // --- MAIN RENDER LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (isPlaying) {
+                // 1. Process Keyboard fluid movement
+                if (keyDirection !== 0) {
+                    playerTargetX += keyDirection * 0.3; // Glide speed
+                    playerTargetX = Math.max(-maxLaneX, Math.min(maxLaneX, playerTargetX));
+                }
+
+                // 2. Update Player position (smooth lerp tracking)
+                let previousX = player.position.x;
+                player.position.x += (playerTargetX - player.position.x) * 0.15;
+                
+                // 3. Fluid tilt physics based on lateral velocity
+                let lateralVelocity = player.position.x - previousX;
+                player.rotation.z += (-lateralVelocity * 0.5 - player.rotation.z) * 0.2;
+
+                // Animate player rings
+                player.children[0].rotation.y += 0.05;
+                player.children[1].rotation.z -= 0.1;
+                player.children[1].scale.setScalar(1 + Math.sin(Date.now()*0.01)*0.1);
+
+                // Immunity Shield Logic
+                if (isImmune) {
+                    immunityTimer -= 1;
+                    shieldMesh.rotation.y += 0.1;
+                    shieldMesh.rotation.z += 0.05;
+                    
+                    // Flash when shield is about to expire (last 1 second / ~60 frames)
+                    if (immunityTimer < 60) {
+                        shieldMesh.visible = Math.floor(Date.now() / 100) % 2 === 0;
+                    } else {
+                        shieldMesh.visible = true;
+                    }
+                    
+                    if (immunityTimer <= 0) {
+                        isImmune = false;
+                        shieldMesh.visible = false;
+                    }
+                }
+
+                // 4. Move Grid
+                gridHelper.position.z += speed;
+                if (gridHelper.position.z >= 5) {
+                    gridHelper.position.z -= 5;
+                }
+
+                // 5. Fair Spawning Logic (Row Based)
+                if (distance - lastSpawnDistance > spawnInterval) {
+                    generateRow();
+                    lastSpawnDistance = distance;
+                    
+                    // As speed increases, distance closes faster.
+                    // Keep the interval high enough so you always have time to dodge.
+                    spawnInterval = Math.max(30, 40 - (speed - baseSpeed) * 10);
+                }
+
+                // 6. Update Entities & Collisions
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    let ob = obstacles[i];
+                    ob.position.z += speed;
+                    
+                    // Slider logic
+                    if (ob.userData.vx) {
+                        ob.position.x += ob.userData.vx;
+                        if (ob.position.x > maxLaneX || ob.position.x < -maxLaneX) {
+                            ob.userData.vx *= -1; // Bounce off walls
+                            ob.position.x = Math.max(-maxLaneX, Math.min(maxLaneX, ob.position.x));
+                        }
+                    }
+                    
+                    // Collision check
+                    if (ob.position.z > -1.5 && ob.position.z < 1.5) {
+                        if (Math.abs(ob.position.x - player.position.x) < 1.4) {
+                            if (isImmune) {
+                                // Smash obstacle!
+                                createExplosion(ob.position, COLORS.obstacle);
+                                AudioController.playSmash();
+                                scene.remove(ob);
+                                obstacles.splice(i, 1);
+                                calories += 5; // Bonus for smashing
+                                continue;
+                            } else {
+                                gameOver();
+                            }
+                        }
+                    }
+
+                    if (ob.position.z > 10) {
+                        scene.remove(ob);
+                        obstacles.splice(i, 1);
+                    }
+                }
+
+                for (let i = collectibles.length - 1; i >= 0; i--) {
+                    let col = collectibles[i];
+                    col.position.z += speed;
+                    col.rotation.y += 0.1;
+                    col.rotation.x += 0.05;
+                    
+                    if (col.position.z > -1.5 && col.position.z < 1.5) {
+                        if (Math.abs(col.position.x - player.position.x) < 1.5) {
+                            if (col.userData.type === 'immunity') {
+                                isImmune = true;
+                                immunityTimer = 300; // ~5 seconds of immunity
+                                createExplosion(col.position, COLORS.immunity);
+                                AudioController.playPowerup();
+                            } else {
+                                energy = Math.min(100, energy + 10);
+                                createExplosion(col.position, COLORS.collectible);
+                                AudioController.playCollect();
+                            }
+                            scene.remove(col);
+                            collectibles.splice(i, 1);
+                            continue;
+                        }
+                    }
+
+                    if (col.position.z > 10) {
+                        scene.remove(col);
+                        collectibles.splice(i, 1);
+                    }
+                }
+
+                // 7. Progression & Stats update
+                distance += speed;
+                calories += speed * 0.05 * (bpm / 100);
+                energy -= 0.05; 
+                
+                speed += 0.0001;
+                bpm = Math.min(180, 75 + (speed - baseSpeed) * 150);
+
+                // Zone Transitions
+                if (distance > 500 && currentZone === 1) {
+                    currentZone = 2;
+                    zoneAlert.innerText = "ZONE 2: MOVING TARGETS";
+                    zoneAlert.classList.add('show');
+                    setTimeout(() => zoneAlert.classList.remove('show'), 3000);
+                    
+                    // Speed boost & grid color shift to red
+                    speed += 0.05;
+                    gridHelper.material.color.setHex(0xff0000);
+                } else if (distance > 1500 && currentZone === 2) {
+                    currentZone = 3;
+                    zoneAlert.innerText = "ZONE 3: OVERDRIVE";
+                    zoneAlert.classList.add('show');
+                    setTimeout(() => zoneAlert.classList.remove('show'), 3000);
+                    
+                    // Speed boost & grid color shift to warning orange
+                    speed += 0.05;
+                    gridHelper.material.color.setHex(0xffaa00);
+                }
+
+                if (energy <= 0) {
+                    gameOver();
+                }
+
+                if (Math.floor(distance) % 5 === 0) {
+                    updateUI();
+                }
+            } else {
+                player.position.y = 1 + Math.sin(Date.now() * 0.002) * 0.2;
+                player.rotation.y += 0.01;
+                player.rotation.z += (0 - player.rotation.z) * 0.1; // reset tilt
+            }
+
+            // Update Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.position.x += p.userData.vx;
+                p.position.y += p.userData.vy;
+                p.position.z += p.userData.vz;
+                p.userData.vy -= 0.02; 
+                p.userData.life -= 0.02;
+                
+                p.scale.setScalar(p.userData.life);
+
+                if (p.userData.life <= 0) {
+                    scene.remove(p);
+                    particles.splice(i, 1);
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.onload = init;
+
+    </script>
+</body>
+</html>
