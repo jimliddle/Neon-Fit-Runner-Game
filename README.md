@@ -1,4 +1,4 @@
-# 🏃‍♂️ CNeon Fit Endless Runner HTML Game
+# 🏃‍♂️ Neon Fit Endless Runner HTML Game
 
 An App I created for nieces and nephews.
 
