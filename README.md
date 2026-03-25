@@ -44,7 +44,7 @@ Three.js (3D Rendering, lighting, and particle effects)
 
 Because the game is built completely in a single file with no external visual or audio assets, installation is instantaneous:
 
-Clone or download this repository or visit: 
+Clone or download this repository or visit: https://jimliddle.github.io/Neon-Fit-Runner-Game/
 
 Open index.html in any modern web browser.
 
