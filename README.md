@@ -6,6 +6,9 @@ Cyberjogger is a high-intensity, 3D synthwave endless runner built entirely in a
 
 As you progress, the game tracks simulated fitness metrics (Calories and Heart Rate) and ramps up the difficulty with dynamic zones and moving targets. Can you handle the Overdrive zone?
 
+<img width="527" height="723.5" alt="image" src="https://github.com/user-attachments/assets/5ca72bc4-b98e-42a3-8e96-815097402cca" />
+
+
 ## ✨ Features
 
 ⚡ Fluid 3D Movement: Smooth, physics-based lateral gliding with dynamic camera tilting for an immersive sense of speed.
