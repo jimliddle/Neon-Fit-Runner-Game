@@ -1,6 +1,6 @@
 # 🏃‍♂️ Neon Fit Endless Runner HTML Game
 
-An App I created for nieces and nephews.
+An App I vibe coded for nieces and nephews.
 
 Neon Fit is a high-intensity, 3D synthwave endless runner built entirely in a single HTML file. Dodge neon obstacles, collect energy cores, and survive the accelerating cyber-grid!
 
